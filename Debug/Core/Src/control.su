@@ -1,0 +1,8 @@
+../Core/Src/control.c:51:6:Controll_Init	176	static
+../Core/Src/control.c:92:6:Pid_Param_Init	40	static
+../Core/Src/control.c:125:6:Motor_Driver_Init	24	static
+../Core/Src/control.c:145:6:Controll_Timer_Init	8	static
+../Core/Src/control.c:160:6:Hardware_Info_Init	4	static
+../Core/Src/control.c:174:6:PID_Controller	112	static
+../Core/Src/control.c:244:6:Forward_Kinematics	56	static
+../Core/Src/control.c:260:6:Stop_Chasis	4	static
