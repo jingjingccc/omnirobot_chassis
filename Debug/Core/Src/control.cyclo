@@ -1,8 +1,8 @@
-control.c:51:6:Controll_Init	2
-control.c:92:6:Pid_Param_Init	1
-control.c:125:6:Motor_Driver_Init	1
-control.c:145:6:Controll_Timer_Init	1
-control.c:160:6:Hardware_Info_Init	1
-control.c:174:6:PID_Controller	12
-control.c:244:6:Forward_Kinematics	1
-control.c:260:6:Stop_Chasis	1
+control.c:54:6:Control_Init	11
+control.c:110:6:Pid_Param_Init	1
+control.c:144:6:Motor_Driver_Init	1
+control.c:165:6:Control_Timer_Init	1
+control.c:180:6:Hardware_Info_Init	1
+control.c:194:6:PID_Controller	13
+control.c:264:6:Forward_Kinematics	1
+control.c:280:6:Stop_Chasis	1

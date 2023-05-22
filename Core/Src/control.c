@@ -32,26 +32,29 @@ double linearvelocity_x;
 double linearvelocity_y;
 double angularvelocity;
 
+//double omega_a;
+//double omega_b;
+//double omega_c;
+
 double limit_integral;
 double pwm_arr;
 double control_period;
 
-PID_Controll WheelA = {0};
-PID_Controll WheelB = {0};
-PID_Controll WheelC = {0};
+PID_Control WheelA = {0};
+PID_Control WheelB = {0};
+PID_Control WheelC = {0};
 
 int i;
 double sssss[1000];
-
 
 /**
  * @ brief Include all the initial function
  * @ retval None
  * */
-void Controll_Init()
+void Control_Init()
 {
 	Hardware_Info_Init();
-	Controll_Timer_Init();
+	Control_Timer_Init();
 
 #ifdef VNH5019
 	Motor_Driver_Init(&WheelA, M1_INA_Pin, M1_INA_GPIO_port, M1_INB_Pin, M1_INB_GPIO_port, M1_Encoder_timer, M1_Encoder_timerchannel, M1_Encoder_dir, M1_PWM_timer, M1_PWM_timerchannel);
@@ -69,7 +72,7 @@ void Controll_Init()
 	Pid_Param_Init(&WheelC, M3_KP, M3_KI, M3_KD);
 
 	i = 0;
-	limit_integral = 0.3;
+	limit_integral = 0.6;
 	pwm_arr = M1_PWM_timer.Init.Period;
 
 	// PCLK1_freq, APB1 timer frequency
@@ -79,9 +82,24 @@ void Controll_Init()
 		PCLK1_freq *=2;
 	}
 
-	int32_t timer_interrupt_freq = PCLK1_freq / (Encoder_Interrupt_timer.Init.Prescaler + 1) / Encoder_Interrupt_timer.Init.Period;
+	int32_t timer_interrupt_freq = (double)PCLK1_freq / (Encoder_Interrupt_timer.Init.Prescaler + 1) / Encoder_Interrupt_timer.Init.Period;
 
-	control_period = (double)1 / timer_interrupt_freq;
+	control_period = (double)(1 / (double)timer_interrupt_freq);
+
+
+	WheelA.integral = 0.0;
+	WheelB.integral = 0.0;
+	WheelC.integral = 0.0;
+
+	// stop chassis
+	HAL_GPIO_WritePin(WheelA.PHASE_pin_type, WheelA.PHASE_pin_Num, GPIO_PIN_RESET);
+	__HAL_TIM_SET_COMPARE(&(WheelA.pwm_timer), WheelA.pwm_timer_channel, 0);
+
+	HAL_GPIO_WritePin(WheelB.PHASE_pin_type, WheelB.PHASE_pin_Num, GPIO_PIN_RESET);
+	__HAL_TIM_SET_COMPARE(&(WheelB.pwm_timer), WheelB.pwm_timer_channel, 0);
+
+	HAL_GPIO_WritePin(WheelC.PHASE_pin_type, WheelC.PHASE_pin_Num, GPIO_PIN_RESET);
+	__HAL_TIM_SET_COMPARE(&(WheelC.pwm_timer), WheelC.pwm_timer_channel, 0);
 }
 
 
@@ -89,7 +107,7 @@ void Controll_Init()
  * @ brief assign the pid gain value into the PID_Controll object
  * @ retval None
  * */
-void Pid_Param_Init(PID_Controll *Wheel_, double kp, double ki, double kd)
+void Pid_Param_Init(PID_Control *Wheel_, double kp, double ki, double kd)
 {
 	Wheel_->Kp = kp;
 	Wheel_->Ki = ki;
@@ -105,7 +123,7 @@ void Pid_Param_Init(PID_Controll *Wheel_, double kp, double ki, double kd)
  * @ retval None
  * */
 #ifdef VNH5019
-void Motor_Driver_Init(PID_Controll *Wheel_,
+void Motor_Driver_Init(PID_Control *Wheel_,
 		GPIO_TypeDef *INA_pin_type_, uint16_t INA_pin_num_,
 		GPIO_TypeDef *INB_pin_type_, uint16_t INB_pin_num_,
 		TIM_HandleTypeDef encoder_timer_, uint32_t encoder_timer_channel_, int encoder_dir_,
@@ -123,7 +141,7 @@ void Motor_Driver_Init(PID_Controll *Wheel_,
 }
 #endif
 #ifdef DRV8874
-void Motor_Driver_Init(PID_Controll *Wheel_,
+void Motor_Driver_Init(PID_Control *Wheel_,
 		GPIO_TypeDef *PHASE_pin_type_, uint16_t PHASE_pin_num_,
 		TIM_HandleTypeDef encoder_timer_, uint32_t encoder_timer_channel_, int encoder_dir_,
 		TIM_HandleTypeDef pwm_timer_, uint32_t pwm_timer_channel_)
@@ -144,7 +162,7 @@ void Motor_Driver_Init(PID_Controll *Wheel_,
  * @ all the definition in the function are in "control.h"
  * @ retval None
  * */
-void Controll_Timer_Init()
+void Control_Timer_Init()
 {
 	HAL_TIM_Encoder_Start(&M1_Encoder_timer, M1_Encoder_timerchannel);
 	HAL_TIM_PWM_Start(&M1_PWM_timer, M1_PWM_timerchannel);
@@ -173,23 +191,23 @@ void Hardware_Info_Init()
  * @ param Wheel_ the object declare for each motor (WheelA, WheelB, WheelC)
  * @ retval None
  * */
-void PID_Controller(PID_Controll *Wheel_)
+void PID_Controller(PID_Control *Wheel_)
 {
-	Wheel_->CountNum = __HAL_TIM_GetCounter(&Wheel_->encoder_timer);
-	Wheel_->rps = (double)Wheel_->CountNum / (4 * encoder_resolution * speed_reduction_ratio * control_period);
+	Wheel_->CountNum = __HAL_TIM_GetCounter(&Wheel_->encoder_timer)* Wheel_->encoder_dir;
+	Wheel_->rps = (double)Wheel_->CountNum / ((double)4 * encoder_resolution * speed_reduction_ratio * control_period);
 	__HAL_TIM_SetCounter(&Wheel_->encoder_timer ,0);
 
-//		if (i<1000)
-//		{
-//			sssss[i] = Wheel_->rps;
-//			i++;
-//		}
+		if (i<500)
+		{
+			sssss[i] = Wheel_->rps;
+			i++;
+		}
 
 	Wheel_->err = Wheel_->goal - Wheel_->rps;
 	Wheel_->propotional = (double)Wheel_->err * Wheel_->Kp;
 	Wheel_->integral += (double)Wheel_->err * Wheel_->Ki * control_period;
 	Wheel_->integral = (Wheel_->integral > limit_integral)? limit_integral : Wheel_->integral;
-	Wheel_->integral = (Wheel_->integral < (-1) * limit_integral)? (-1) * limit_integral : Wheel_->integral;
+	Wheel_->integral = (Wheel_->integral < (double)(-1) * limit_integral)? (double)(-1) * limit_integral : Wheel_->integral;
 	Wheel_->differential = (double) Wheel_->Kd * (-1) * (Wheel_->rps - Wheel_->rps_before) / control_period;
 
 	Wheel_->duty = Wheel_->propotional + Wheel_->integral + Wheel_->differential;
@@ -215,12 +233,12 @@ void PID_Controller(PID_Controll *Wheel_)
 #ifdef DRV8874
 	if(Wheel_->duty >= 0)
 	{
-		HAL_GPIO_WritePin(Wheel_->PHASE_pin_type, Wheel_->PHASE_pin_Num, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(Wheel_->PHASE_pin_type, Wheel_->PHASE_pin_Num, GPIO_PIN_RESET);
 		__HAL_TIM_SET_COMPARE(&(Wheel_->pwm_timer), Wheel_->pwm_timer_channel, fabs(Wheel_->duty * pwm_arr));
 	}
 	else
 	{
-		HAL_GPIO_WritePin(Wheel_->PHASE_pin_type, Wheel_->PHASE_pin_Num, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(Wheel_->PHASE_pin_type, Wheel_->PHASE_pin_Num, GPIO_PIN_SET);
 		__HAL_TIM_SET_COMPARE(&(Wheel_->pwm_timer), Wheel_->pwm_timer_channel, fabs(Wheel_->duty * pwm_arr));
 	}
 #endif
@@ -243,11 +261,11 @@ void PID_Controller(PID_Controll *Wheel_)
  *      B-------C
  * @ retval None
  * */
-void Forward_Kinematics(int x, int y, int w)
+void Forward_Kinematics(double x, double y, double w)
 {
 	double omega_a = (y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_a);
-	double omega_b = (-sqrt(3)/2 * x - (1/2) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_b);
-	double omega_c = (sqrt(3)/2 * x - (1/2) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_c);
+	double omega_b = ((-sqrt(3)/2) * x - (0.5) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_b);
+	double omega_c = ((sqrt(3)/2) * x - (0.5) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_c);
 
 	WheelA.goal = omega_a / (2 * M_PI);
 	WheelB.goal = omega_b / (2 * M_PI);

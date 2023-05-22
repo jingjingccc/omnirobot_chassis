@@ -36,6 +36,14 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+// make sure STM works
+#define LED1_pin_type GPIOA
+#define LED1_pin_num GPIO_PIN_5
+
+// make sure rosserial works
+#define LED2_pin_type GPIOA
+#define LED2_pin_num GPIO_PIN_12
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,7 +59,7 @@ int a;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void LED_Init(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -88,28 +96,50 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_TIM3_Init();
-  MX_TIM12_Init();
+  MX_USART2_UART_Init();
+  MX_TIM1_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM5_Init();
-  MX_TIM8_Init();
-  MX_USART2_UART_Init();
+  MX_TIM10_Init();
   /* USER CODE BEGIN 2 */
   a = 0;
-  HAL_TIM_Base_Start_IT(&htim3);
-  Controll_Init();
+  HAL_TIM_Base_Start_IT(&Encoder_Interrupt_timer);
+  Control_Init();
   Rosserial_Init();
+  LED_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  int count_for_stmLED = 0, count_for_serialLED = 0;
   while (1)
   {
+  	count_for_stmLED++;
+   	count_for_serialLED++;
+  	if(count_for_stmLED == 1400000)
+  	{
+    	HAL_GPIO_TogglePin(LED1_pin_type, LED1_pin_num);
+    	count_for_stmLED = 0;
+  	}
+		if (count_for_serialLED == 1400000)
+		{
+			if(Rosserial_Checkconfigstate() == true)
+			{
+				HAL_GPIO_TogglePin (LED2_pin_type, LED2_pin_num);
+			}
+			else
+			{
+				HAL_GPIO_WritePin(LED2_pin_type, LED2_pin_num, GPIO_PIN_RESET);
+			}
 
+			count_for_serialLED = 0;
+		}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
   }
   /* USER CODE END 3 */
 }
@@ -163,11 +193,11 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if(htim->Instance == htim3.Instance)
+	if(htim->Instance == Encoder_Interrupt_timer.Instance)
 	{
-		WheelA.goal = 0.0;
-//		WheelB.goal = 0.0;
-//		WheelC.goal = 0.0;
+//		WheelA.goal = 0.2;
+//		WheelB.goal = 0.2;
+//		WheelC.goal = 0.2;
 
 		a++;
 		Rosserial_Spin();
@@ -177,12 +207,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //			linearvelocity_y = 0.0;
 //			angularvelocity = 0.0;
 //		}
-//		Forward_Kinematics(linearvelocity_x, linearvelocity_y, angularvelocity);
+		Forward_Kinematics(linearvelocity_x, linearvelocity_y, angularvelocity);
 		PID_Controller(&WheelA);
-//		PID_Controller(&WheelB);
-//		PID_Controller(&WheelC);
+		PID_Controller(&WheelB);
+		PID_Controller(&WheelC);
 	}
 
+}
+
+void LED_Init(void)
+{
+	HAL_GPIO_WritePin(LED1_pin_type, LED1_pin_num, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LED2_pin_type, LED2_pin_num, GPIO_PIN_RESET);
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
