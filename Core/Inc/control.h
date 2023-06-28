@@ -78,13 +78,13 @@
 extern double control_period;
 
 /* Hardware Info */
-#define encoder_resolution 52
-#define speed_reduction_ratio 75.4
+#define encoder_resolution 13
+#define speed_reduction_ratio 74.8
 
-//#define wheel_radius (double)(58 / 2 / 1000)
-//#define chassis_radius (double)(240 / 2 / 1000)
-#define wheel_radius 0.029
-#define chassis_radius 0.12
+//#define wheel_radius (double)(60 / 2 / 1000)
+//#define chassis_radius (double)(243.5 / 2 / 1000)
+#define wheel_radius 0.03
+#define chassis_radius 0.12175
 
 extern double radius_error_a;
 extern double radius_error_b;
@@ -95,26 +95,54 @@ extern double linearvelocity_x;
 extern double linearvelocity_y;
 extern double angularvelocity;
 
-//extern double omega_a;
-//extern double omega_b;
-//extern double omega_c;
-
 /* PID gain param : only PI control*/
-#define M1_KP 3.5090598598976
-#define M1_KI 56.9236617194958
+#define robot2
+#ifdef robot1
+#define M1_KP 0.95
+#define M1_KI 16
 #define M1_KD 0.0
 
-#define M2_KP 4.8090598598975998
-#define M2_KI 80.695121130922402
+#define M2_KP 1.05
+#define M2_KI 25
 #define M2_KD 0.0
 
-#define M3_KP 3.6553203238344798
-#define M3_KI 128.82717088007499
+#define M3_KP 0.80670530355843995
+#define M3_KI 38.971950097634299
 #define M3_KD 0.0
+#endif
+
+#ifdef robot2
+#define M1_KP 1.0800000000000001
+#define M1_KI 41
+#define M1_KD 0
+
+#define M2_KP 1.1
+#define M2_KI 32.011831579124603
+#define M2_KD 0.0
+
+#define M3_KP 0.90000000000000002
+#define M3_KI 45
+#define M3_KD 0.0
+#endif
+
+#ifdef robot3
+#define M1_KP 0.95408319297197197
+#define M1_KI 25
+#define M1_KD 0.0
+
+#define M2_KP 1.0886477819659699
+#define M2_KI 50.660609174826099
+#define M2_KD 0.0
+
+#define M3_KP 0.80670530355843995
+#define M3_KI 38.971950097634299
+#define M3_KD 0.0
+#endif
 
 /* PID control param define */
 extern double limit_integral;
 extern double pwm_arr;
+
 
 typedef struct
 {

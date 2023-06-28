@@ -32,10 +32,6 @@ double linearvelocity_x;
 double linearvelocity_y;
 double angularvelocity;
 
-//double omega_a;
-//double omega_b;
-//double omega_c;
-
 double limit_integral;
 double pwm_arr;
 double control_period;
@@ -83,13 +79,15 @@ void Control_Init()
 	}
 
 	int32_t timer_interrupt_freq = (double)PCLK1_freq / (Encoder_Interrupt_timer.Init.Prescaler + 1) / Encoder_Interrupt_timer.Init.Period;
-
 	control_period = (double)(1 / (double)timer_interrupt_freq);
-
 
 	WheelA.integral = 0.0;
 	WheelB.integral = 0.0;
 	WheelC.integral = 0.0;
+
+	WheelA.goal = 0.0;
+	WheelB.goal = 0.0;
+	WheelC.goal = 0.0;
 
 	// stop chassis
 	HAL_GPIO_WritePin(WheelA.PHASE_pin_type, WheelA.PHASE_pin_Num, GPIO_PIN_RESET);
@@ -197,11 +195,11 @@ void PID_Controller(PID_Control *Wheel_)
 	Wheel_->rps = (double)Wheel_->CountNum / ((double)4 * encoder_resolution * speed_reduction_ratio * control_period);
 	__HAL_TIM_SetCounter(&Wheel_->encoder_timer ,0);
 
-		if (i<500)
-		{
-			sssss[i] = Wheel_->rps;
-			i++;
-		}
+//		if (i<500)
+//		{
+//			sssss[i] = Wheel_->rps;
+//			i++;
+//		}
 
 	Wheel_->err = Wheel_->goal - Wheel_->rps;
 	Wheel_->propotional = (double)Wheel_->err * Wheel_->Kp;
@@ -209,6 +207,7 @@ void PID_Controller(PID_Control *Wheel_)
 	Wheel_->integral = (Wheel_->integral > limit_integral)? limit_integral : Wheel_->integral;
 	Wheel_->integral = (Wheel_->integral < (double)(-1) * limit_integral)? (double)(-1) * limit_integral : Wheel_->integral;
 	Wheel_->differential = (double) Wheel_->Kd * (-1) * (Wheel_->rps - Wheel_->rps_before) / control_period;
+
 
 	Wheel_->duty = Wheel_->propotional + Wheel_->integral + Wheel_->differential;
 	Wheel_->duty = (Wheel_->duty > 1)? 1 : Wheel_->duty;
@@ -264,8 +263,8 @@ void PID_Controller(PID_Control *Wheel_)
 void Forward_Kinematics(double x, double y, double w)
 {
 	double omega_a = (y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_a);
-	double omega_b = ((-sqrt(3)/2) * x - (0.5) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_b);
-	double omega_c = ((sqrt(3)/2) * x - (0.5) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_c);
+	double omega_b = ((-sqrt(3)) * x * 0.5 - (0.5) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_b);
+	double omega_c = ((sqrt(3)) * x * 0.5 - (0.5) * y + w * chassis_radius * radius_error_chassis)/(wheel_radius * radius_error_c);
 
 	WheelA.goal = omega_a / (2 * M_PI);
 	WheelB.goal = omega_b / (2 * M_PI);
@@ -283,3 +282,4 @@ void Stop_Chasis()
 	linearvelocity_y = 0;
 	angularvelocity = 0;
 }
+

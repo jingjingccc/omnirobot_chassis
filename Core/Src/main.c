@@ -193,20 +193,21 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+
 	if(htim->Instance == Encoder_Interrupt_timer.Instance)
 	{
-//		WheelA.goal = 0.2;
-//		WheelB.goal = 0.2;
-//		WheelC.goal = 0.2;
+//		WheelA.goal = 0.0;
+//		WheelB.goal = 0.0;
+//		WheelC.goal = 0.0;
 
 		a++;
 		Rosserial_Spin();
-//		if (Rosserial_Checkconfigstate() == false)
-//		{
-//			linearvelocity_x = 0.0;
-//			linearvelocity_y = 0.0;
-//			angularvelocity = 0.0;
-//		}
+		if (Rosserial_Checkconfigstate() == false)
+		{
+			linearvelocity_x = 0.0;
+			linearvelocity_y = 0.0;
+			angularvelocity = 0.0;
+		}
 		Forward_Kinematics(linearvelocity_x, linearvelocity_y, angularvelocity);
 		PID_Controller(&WheelA);
 		PID_Controller(&WheelB);
